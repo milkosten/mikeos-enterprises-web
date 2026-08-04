@@ -1,0 +1,19 @@
+# mikeos-enterprises-web on the 242 box — enterprises.osmike.com
+# Static UI + server-side proxy over the two registry APIs. Joins the shared
+# `deploy_default` network so deploy-caddy reverse_proxies it and it can reach
+# the backends by container name. The OSM_TOKEN lives only in .env (0600).
+services:
+  web:
+    build: .
+    image: mikeos-enterprises-web:latest
+    container_name: mikeos-enterprises-web
+    restart: unless-stopped
+    environment:
+      OSM_TOKEN: ${OSM_TOKEN}
+    mem_limit: 256m
+    cpus: 0.5
+    networks: [deploy_default]
+
+networks:
+  deploy_default:
+    external: true
