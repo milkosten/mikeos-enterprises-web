@@ -91,6 +91,24 @@
     border-top-color:var(--accent);animation:spin .7s linear infinite;flex:none}
   @keyframes spin{to{transform:rotate(360deg)}}
 
+  /* SCB grouped sub-cards */
+  .scb-group{margin-top:24px;padding-top:20px;border-top:1px dashed var(--line)}
+  .scb-group.first{margin-top:0;padding-top:0;border-top:0}
+  .scb-group .gk{font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--faint);margin:0 0 12px}
+  .badge.listing{background:linear-gradient(100deg,#fff3ea,#ffeef4 55%,#efeeff);color:#7a4ddc;
+    border:1px solid #e4dcf7;font-size:13px;padding:5px 14px}
+  .badge.warn{background:#fdecec;color:#b3261e}
+  .badge.ok{background:#e6f6ee;color:#1d7a4f}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+  .chips .tchip{border:1px solid var(--line);background:var(--bg);border-radius:999px;
+    padding:5px 13px;font-size:13px;font-weight:600;color:var(--muted)}
+  .ind-list{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+  .ind-list li{font-size:15px;line-height:1.5}
+  .ind-list .code{color:var(--faint);font-size:13px;margin-left:8px}
+  .ind-list .avd{display:block;color:var(--faint);font-size:13px}
+  .ind-list li.primary{font-weight:600}
+
   .nf{padding:80px 0 30px;text-align:center}
   .nf h1{font-size:clamp(34px,6vw,58px)}
   .nf p{color:var(--muted);font-size:18px;max-width:44ch;margin:20px auto 30px}
@@ -255,36 +273,107 @@ else if(BOOT.country==="se"){
   $("main").innerHTML=h;
   $("footnote").innerHTML='Sources: Bolagsverket · SCB (Statistics Sweden, Allmänna företagsregistret)';
   copyBtn();
-  /* async: live SCB enrichment — the page is complete without it */
+  /* async: live SCB enrichment, grouped — the page is complete without it */
+  function scbGroups(s){
+    var groups=[];
+    function grp(title,inner){if(inner)groups.push(
+      '<div class="scb-group"><p class="gk">'+title+"</p>"+inner+"</div>")}
+    function kv(rows){return rows?'<dl class="kv">'+rows+"</dl>":""}
+
+    /* Size & finances */
+    var emp=s.anstallda&&s.anstallda!=="Uppgift saknas"?s.anstallda:null;
+    var turnover=s.omsattningsklass?esc(s.omsattningsklass)+
+      (s.omsattningsAr?' <span class="sub">('+esc(s.omsattningsAr)+")</span>":""):null;
+    grp("Size & finances",kv(
+      row("Employees",emp?esc(emp):null)+
+      row("SME class",s.smeKlass?esc(s.smeKlass):null)+
+      row("Turnover",turnover)+
+      row("Workplaces",s.antalArbetsstallen!=null?esc(String(s.antalArbetsstallen))+
+        '<span class="sub">arbetsställen</span>':null)));
+
+    /* Ownership & listing */
+    var pp=s.privatPublikt?(/^publikt/i.test(s.privatPublikt)?
+      '<span class="badge listing">◆ '+esc(s.privatPublikt)+"</span>":esc(s.privatPublikt)):null;
+    var own=[s.agarnamn,s.agarland?"("+s.agarland+")":null].filter(Boolean).join(" ");
+    grp("Ownership & listing",kv(
+      row("Public / private",pp)+
+      row("Ownership",s.agarkategori?esc(s.agarkategori):null)+
+      row("Foreign ownership",s.utlandsktAgande?esc(s.utlandsktAgande):null)+
+      row("Owner",own?esc(own):null)+
+      row("Sector",s.sektor?esc(s.sektor):null)));
+
+    /* Registrations & status */
+    var bol=s.bolagsstatus?('<span class="badge '+
+      (s.bolagsstatusKod&&s.bolagsstatusKod!=="0"?"warn":"ok")+'">'+esc(s.bolagsstatus)+"</span>"):null;
+    grp("Registrations & status",kv(
+      row("Company status",s.foretagsstatus?esc(s.foretagsstatus):null)+
+      row("Bolagsstatus",bol)+
+      row("F-skatt",s.fskattStatus?esc(s.fskattStatus):null)+
+      row("VAT (moms)",s.momsStatus?esc(s.momsStatus):null)+
+      row("Employer",s.arbetsgivarStatus?esc(s.arbetsgivarStatus):null)+
+      row("Skatteverket",s.skvRegistrerad?esc(s.skvRegistrerad):null)));
+
+    /* International trade */
+    var chips="";
+    if(s.handelsregioner&&s.handelsregioner.length){
+      chips="<dt>Regions</dt><dd><div class=\"chips\">"+s.handelsregioner.map(function(r){
+        var v=(r.value||"").toLowerCase();
+        var label=v.indexOf("både")>=0?"export & import":
+          (v.indexOf("export")>=0?"export":(v.indexOf("import")>=0?"import":r.value));
+        return '<span class="tchip">'+esc(r.region)+" · "+esc(label)+"</span>"}).join("")+"</div></dd>";
+    }
+    grp("International trade",kv(
+      row("Export",s.exportKlass?esc(s.exportKlass):null)+
+      row("Import",s.importKlass?esc(s.importKlass):null)+chips));
+
+    /* All industries (up to 5 SNI slots) */
+    if(s.branscher&&s.branscher.length){
+      var lis=s.branscher.map(function(b,i){
+        return "<li"+(i===0?' class="primary"':"")+">"+esc(b.namn||"Bransch")+
+          '<span class="code">SNI '+esc(b.kod||"")+"</span>"+
+          (b.avdelningNamn?'<span class="avd">'+
+            esc(b.avdelningKod?b.avdelningKod+" · ":"")+esc(b.avdelningNamn)+"</span>":"")+"</li>"}).join("");
+      grp("Industries ("+s.branscher.length+")",'<ul class="ind-list">'+lis+"</ul>");
+    }else if(s.bransch){
+      grp("Industry",kv(row("Industry",esc(s.bransch)+
+        (s.branschKod?'<span class="sub">SNI '+esc(s.branschKod)+"</span>":""))));
+    }
+
+    /* Gender ratio — only when unmasked */
+    grp("Gender ratio",kv(
+      row("Women",s.andelKvinna?esc(s.andelKvinna):null)+
+      row("Men",s.andelMan?esc(s.andelMan):null)));
+
+    /* Dates, addresses & contact */
+    var post=[s.postadress,[s.postnr,s.postort].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+    var visit=[s.besoksadress,[s.besokspostnr,s.besokspostort].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+    var region=[s.kommun&&("Kommun: "+s.kommun),s.lan&&("Län: "+s.lan),
+      s.aRegion&&("A-region: "+s.aRegion)].filter(Boolean).join(" · ");
+    grp("Dates, address & contact",kv(
+      row("Registered",s.registreringsdatum?esc(s.registreringsdatum):null)+
+      row("Started",s.startdatum?esc(s.startdatum):null)+
+      row("Legal form",s.juridiskForm?esc(s.juridiskForm):null)+
+      row("C/O",s.coAdress?esc(s.coAdress):null)+
+      row("Postal address",post?esc(post):null)+
+      row("Visiting address",visit?esc(visit):null)+
+      row("Region",region?esc(region):null)+
+      row("Phone",s.telefon?'<a href="tel:'+esc(s.telefon)+'">'+esc(s.telefon)+"</a>":null)+
+      row("Email",s.epost?'<a href="mailto:'+esc(s.epost)+'">'+esc(s.epost)+"</a>":null)+
+      row("Website",s.webbplats?'<a target="_blank" rel="noopener" href="'+
+        esc(/^https?:/.test(s.webbplats)?s.webbplats:"https://"+s.webbplats)+'">'+
+        esc(s.webbplats)+"</a>":null)));
+
+    if(!groups.length)return "";
+    return groups.join("").replace('class="scb-group"','class="scb-group first"');
+  }
   fetch("/api/se/scb?orgnr="+encodeURIComponent(c.orgnr))
     .then(function(r){if(!r.ok)throw 0;return r.json()})
     .then(function(j){
       var el=$("scb-body");if(!el)return;
       if(!j.ok||!j.company){el.innerHTML='<p class="note">This company isn’t in SCB’s '+
         'live register extract (it may be recently deregistered or out of scope).</p>';return}
-      var s=j.company;
-      var post=[s.postadress,[s.postnr,s.postort].filter(Boolean).join(" ")].filter(Boolean).join(", ");
-      var visit=[s.besoksadress,[s.besokspostnr,s.besokspostort].filter(Boolean).join(" ")].filter(Boolean).join(", ");
-      var region=[s.kommun&&("Kommun: "+s.kommun),s.lan&&("Län: "+s.lan)].filter(Boolean).join(" · ");
-      var emp=s.anstallda&&s.anstallda!=="Uppgift saknas"?s.anstallda:null;
-      var rows=
-        row("Employees",emp?esc(emp):null)+
-        row("Workplaces",s.antalArbetsstallen!=null?esc(String(s.antalArbetsstallen))+
-          '<span class="sub">arbetsställen</span>':null)+
-        row("Industry",s.bransch?esc(s.bransch)+(s.branschKod?'<span class="sub">SNI '+
-          esc(s.branschKod)+"</span>":""):null)+
-        row("Legal form",s.juridiskForm?esc(s.juridiskForm):null)+
-        row("Started",s.startdatum?esc(s.startdatum):null)+
-        row("Registered",s.registreringsdatum?esc(s.registreringsdatum):null)+
-        row("Postal address",post?esc(post):null)+
-        row("Visiting address",visit?esc(visit):null)+
-        row("Region",region?esc(region):null)+
-        row("Phone",s.telefon?'<a href="tel:'+esc(s.telefon)+'">'+esc(s.telefon)+"</a>":null)+
-        row("Email",s.epost?'<a href="mailto:'+esc(s.epost)+'">'+esc(s.epost)+"</a>":null)+
-        row("Website",s.webbplats?'<a target="_blank" rel="noopener" href="'+
-          esc(/^https?:/.test(s.webbplats)?s.webbplats:"https://"+s.webbplats)+'">'+
-          esc(s.webbplats)+"</a>":null);
-      $("scb-body").innerHTML=rows?'<dl class="kv">'+rows+"</dl>":
+      var html=scbGroups(j.company);
+      el.innerHTML=html||
         '<p class="note">SCB holds no additional public details for this company.</p>';
     })
     .catch(function(){var el=$("scb-body");if(el)el.innerHTML=
