@@ -6,26 +6,34 @@ the OSM_TOKEN never reaches the browser.
 
 Backends (reached by container name over the shared `deploy_default` network):
   http://sweden-enterprises-api:8000   /health /search /company /near
-  http://france-enterprises-api:8000   /health /near /lookup [/search if deployed]
+  http://france-enterprises-api:8000   /health /near /lookup /search /company
+  http://mikeos-sweden-scb:3000        POST /api/v1/companies/by-orgnr  (X-API-Key)
 
-No database. One secret: OSM_TOKEN (env). Small in-memory TTL cache keeps the
-page fast and shields the backends from repeat traffic.
+Also server-side renders shareable profile pages /se/{orgnr} and /fr/{siret}
+with real <title>/OG tags. No database. Secrets: OSM_TOKEN + SCB_KEY (env).
+Small in-memory TTL caches keep the page fast and shield the backends.
 """
 import asyncio
+import html
+import json
 import os
 import re
 import time
 
 import httpx
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 OSM_TOKEN = os.environ.get("OSM_TOKEN", "")
+SCB_KEY = os.environ.get("SCB_KEY", "")
 SE_BASE = os.environ.get("SE_BASE", "http://sweden-enterprises-api:8000")
 FR_BASE = os.environ.get("FR_BASE", "http://france-enterprises-api:8000")
+SCB_BASE = os.environ.get("SCB_BASE", "http://mikeos-sweden-scb:3000")
 TIMEOUT = httpx.Timeout(6.0, connect=3.0)
+SCB_TIMEOUT = httpx.Timeout(10.0, connect=3.0)  # SCB fronts a rate-limited, queued upstream
 CACHE_TTL = 60.0          # seconds — stats + repeated identical queries
+SCB_TTL = 900.0           # 15 min per orgnr — spare the 10 req/10 s SCB upstream
 CACHE_MAX = 512           # entries; simple bound so memory can't creep
 
 app = FastAPI(title="mikeos-enterprises-web", docs_url=None, redoc_url=None)
@@ -48,9 +56,9 @@ async def _shutdown():
         await _client.aclose()
 
 
-def _cache_get(key: str):
+def _cache_get(key: str, ttl: float = CACHE_TTL):
     hit = _cache.get(key)
-    if hit and time.monotonic() - hit[0] < CACHE_TTL:
+    if hit and time.monotonic() - hit[0] < ttl:
         return hit[1]
     return None
 
@@ -165,9 +173,137 @@ async def fr_lookup(name: str = Query(..., min_length=1, max_length=200),
     return await _get(FR_BASE, "/lookup", {"name": name, "lat": lat, "lon": lon})
 
 
+@app.get("/api/fr/company")
+async def fr_company(siret: str = Query(..., min_length=14, max_length=17)):
+    d = _digits(siret)
+    if len(d) != 14:
+        raise HTTPException(status_code=400, detail="siret must be 14 digits")
+    return await _get(FR_BASE, "/company", {"siret": d})
+
+
+# ---------- SCB live registry (Sweden, profile pages only) ----------
+
+@app.get("/api/se/scb")
+async def se_scb(orgnr: str = Query(..., min_length=10, max_length=13)):
+    """Live Allmänna företagsregistret row via the internal mikeos-sweden-scb service.
+    Heavily cached (15 min/orgnr) and only ever called from a profile page — the SCB
+    upstream allows 10 req/10 s for the whole ecosystem."""
+    o = _digits(orgnr)
+    if len(o) == 12:
+        o = o[-10:]
+    if len(o) != 10:
+        raise HTTPException(status_code=400, detail="orgnr must be 10 digits")
+    if not SCB_KEY:
+        raise HTTPException(status_code=503, detail="live registry not configured")
+    key = f"scb:{o}"
+    cached = _cache_get(key, ttl=SCB_TTL)
+    if cached is not None:
+        return cached
+    try:
+        r = await _client.post(
+            f"{SCB_BASE}/api/v1/companies/by-orgnr",
+            json={"orgNr": [o]},
+            headers={"X-API-Key": SCB_KEY, "Authorization": ""},
+            timeout=SCB_TIMEOUT,
+        )
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="live registry timed out")
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail="live registry unreachable")
+    if r.status_code >= 400:
+        raise HTTPException(status_code=502, detail="live registry error")
+    body = r.json()
+    rows = body.get("data") or []
+    out = {"ok": bool(rows), "company": rows[0] if rows else None,
+           "notFound": o in (body.get("notFound") or [])}
+    _cache_put(key, out)
+    return out
+
+
 @app.get("/api/{rest:path}")
 async def api_404(rest: str):
     return JSONResponse({"ok": False, "detail": "unknown endpoint"}, status_code=404)
+
+
+# ---------- shareable profile pages (server-side rendered shell) ----------
+
+def _digits(v: str) -> str:
+    return re.sub(r"\D", "", v or "")
+
+
+def _template() -> str:
+    with open(os.path.join(PUBLIC, "profile.html"), encoding="utf-8") as f:
+        return f.read()
+
+
+def _render(head: str, boot: dict) -> str:
+    # </ must not terminate the boot <script>; escape it inside JSON strings.
+    data = json.dumps(boot, ensure_ascii=False).replace("</", "<\\/")
+    return _template().replace("<!--HEAD-->", head).replace("__BOOT__", data)
+
+
+def _head(title: str, desc: str, url: str) -> str:
+    t, d, u = html.escape(title), html.escape(desc), html.escape(url)
+    return (f"<title>{t}</title>\n"
+            f'<meta name="description" content="{d}" />\n'
+            f'<meta property="og:title" content="{t}" />\n'
+            f'<meta property="og:description" content="{d}" />\n'
+            f'<meta property="og:type" content="profile" />\n'
+            f'<meta property="og:url" content="{u}" />\n'
+            f'<meta name="twitter:card" content="summary" />\n'
+            f'<link rel="canonical" href="{u}" />')
+
+
+def _shorten(s: str | None, n: int = 160) -> str:
+    s = re.sub(r"\s+", " ", s or "").strip()
+    return s if len(s) <= n else s[: n - 1].rstrip() + "…"
+
+
+def _404_page(country: str) -> HTMLResponse:
+    head = _head("Company not found — MikeOS Enterprises",
+                 "No company with that number in the registry.",
+                 "https://enterprises.osmike.com/")
+    return HTMLResponse(_render(head, {"notFound": True, "country": country}),
+                        status_code=404)
+
+
+@app.get("/se/{orgnr}", response_class=HTMLResponse)
+async def se_profile(orgnr: str):
+    o = _digits(orgnr)
+    if len(o) == 12:
+        o = o[-10:]
+    if len(o) != 10:
+        return _404_page("se")
+    try:
+        c = await _get(SE_BASE, "/company", {"orgnr": o})
+    except HTTPException as e:
+        if e.status_code == 404:
+            return _404_page("se")
+        raise
+    name = c.get("name") or "Company"
+    desc = _shorten(c.get("business_desc")) or \
+        f"Swedish company {o[:6]}-{o[6:]} — full registry profile on MikeOS Enterprises."
+    head = _head(f"{name} — MikeOS Enterprises", desc,
+                 f"https://enterprises.osmike.com/se/{o}")
+    return HTMLResponse(_render(head, {"country": "se", "company": c}))
+
+
+@app.get("/fr/{siret}", response_class=HTMLResponse)
+async def fr_profile(siret: str):
+    d = _digits(siret)
+    if len(d) != 14:
+        return _404_page("fr")
+    try:
+        c = await _get(FR_BASE, "/company", {"siret": d})
+    except HTTPException as e:
+        if e.status_code == 404:
+            return _404_page("fr")
+        raise
+    name = c.get("name") or "Établissement"
+    bits = [b for b in [c.get("kind"), "SIRENE registry storefront, France"] if b]
+    head = _head(f"{name} — MikeOS Enterprises", _shorten(" · ".join(bits)),
+                 f"https://enterprises.osmike.com/fr/{d}")
+    return HTMLResponse(_render(head, {"country": "fr", "company": c}))
 
 
 app.mount("/", StaticFiles(directory=PUBLIC, html=True), name="static")

@@ -10,6 +10,7 @@ services:
     restart: unless-stopped
     environment:
       OSM_TOKEN: ${OSM_TOKEN}
+      SCB_KEY: ${SCB_KEY:-}
     mem_limit: 256m
     cpus: 0.5
     networks: [deploy_default]

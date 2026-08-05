@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<!--HEAD-->
+<meta name="theme-color" content="#FBFAF7" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='1' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23FF8A5B'/%3E%3Cstop offset='.5' stop-color='%23FF6FA5'/%3E%3Cstop offset='1' stop-color='%237C7CFF'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='%23FBFAF7'/%3E%3Crect x='8' y='12' width='7' height='12' rx='1.5' fill='url(%23g)'/%3E%3Crect x='17' y='7' width='7' height='17' rx='1.5' fill='url(%23g)' opacity='.75'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FBFAF7; --ink:#17130E; --muted:#6c6458; --faint:#9a9082;
+    --line:#ece6dc; --card:#ffffff;
+    --coral:#FF8A5B; --rose:#FF6FA5; --peri:#7C7CFF; --sky:#4FC4E8;
+    --accent:#E8553F;
+    --disp:"Fraunces",Georgia,"Times New Roman",serif;
+    --sans:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --grad:linear-gradient(100deg,var(--coral),var(--rose) 42%,var(--peri) 82%);
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden;font-size:17px}
+  .wrap{max-width:880px;margin:0 auto;padding:0 26px}
+  a{color:inherit;text-decoration:none}
+  .grad-text{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  .dawn{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .dawn::before,.dawn::after{content:"";position:absolute;border-radius:50%;filter:blur(90px);opacity:.4}
+  .dawn::before{width:70vw;height:70vw;left:-18vw;top:-28vw;
+    background:radial-gradient(circle at 40% 40%,var(--coral),transparent 62%)}
+  .dawn::after{width:56vw;height:56vw;right:-16vw;top:-8vw;
+    background:radial-gradient(circle at 60% 40%,var(--peri),transparent 62%)}
+  .content{position:relative;z-index:1}
+
+  nav.top{display:flex;align-items:center;justify-content:space-between;padding:26px 0;gap:14px;flex-wrap:wrap}
+  .logo{display:flex;align-items:center;gap:11px;font-weight:700;font-size:19px;letter-spacing:-.02em}
+  .logo .mark{width:22px;height:22px;border-radius:7px;background:var(--grad);display:inline-block;flex:none}
+  .logo .sub-name{color:var(--faint);font-weight:600}
+  nav.top .back{font-weight:600;font-size:14.5px;border:1px solid var(--ink);
+    border-radius:999px;padding:9px 18px;transition:.2s}
+  nav.top .back:hover{background:var(--ink);color:var(--bg)}
+
+  header.ph{padding:44px 0 10px}
+  .eyebrow{font-weight:600;font-size:13.5px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 18px;display:inline-flex;align-items:center;gap:9px}
+  .eyebrow .d{width:7px;height:7px;border-radius:50%;background:var(--grad)}
+  h1{font-family:var(--disp);font-weight:400;font-size:clamp(34px,6.4vw,64px);line-height:1.05;
+    letter-spacing:-.025em;margin:0;text-wrap:balance}
+  .idline{color:var(--muted);font-size:16.5px;margin:14px 0 0;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+  .badge{display:inline-block;font-size:12.5px;font-weight:600;letter-spacing:.04em;border-radius:999px;
+    padding:4px 12px;background:#f4eee5;color:var(--muted)}
+  .badge.food{background:#ffefe6;color:#c2470f}
+  .badge.shop{background:#efeaff;color:#5e50d6}
+  .badge.health{background:#e6f6ee;color:#1d7a4f}
+  .badge.service{background:#e9f4fb;color:#2278a8}
+  .badge.geo{background:#e6f6ee;color:#1d7a4f}
+  .badge.nogeo{background:#f4eee5;color:var(--faint)}
+  .actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px;align-items:center}
+  .btn{font-weight:600;font-size:15px;border-radius:999px;padding:12px 24px;background:var(--ink);color:var(--bg);
+    display:inline-block;transition:transform .2s;box-shadow:0 10px 26px -14px rgba(23,19,14,.5);cursor:pointer;
+    border:0;font-family:var(--sans)}
+  .btn:hover{transform:translateY(-2px)}
+  .btn.ghost{background:transparent;color:var(--ink);box-shadow:none;border:1px solid var(--line)}
+  .btn.ghost:hover{transform:none;border-color:var(--ink)}
+
+  .desc{border-left:3px solid transparent;border-image:var(--grad) 1;background:#fffaf4;
+    padding:clamp(22px,3.5vw,34px) clamp(24px,4vw,38px);margin:36px 0 0;font-family:var(--disp);
+    font-weight:400;font-style:italic;font-size:clamp(19px,2.6vw,23px);line-height:1.6;color:#3d362c;
+    border-radius:0 18px 18px 0}
+  .desc .src{display:block;font-family:var(--sans);font-style:normal;font-weight:600;font-size:12.5px;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-top:16px}
+
+  section.card{background:var(--card);border:1px solid var(--line);border-radius:22px;
+    padding:clamp(24px,4vw,34px);margin-top:22px}
+  section.card h2{font-family:var(--disp);font-weight:400;font-size:clamp(21px,3vw,26px);
+    letter-spacing:-.02em;margin:0 0 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  section.card h2 .tag{font-family:var(--sans);font-size:11.5px;font-weight:700;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--accent);border:1px solid var(--line);border-radius:999px;padding:4px 12px}
+  .kv{display:grid;grid-template-columns:170px 1fr;gap:11px 20px;font-size:15.5px;margin:0}
+  .kv dt{color:var(--faint);font-weight:600;font-size:13px;letter-spacing:.05em;text-transform:uppercase;padding-top:2px}
+  .kv dd{margin:0;color:var(--ink);overflow-wrap:anywhere}
+  .kv dd .sub{color:var(--faint);font-size:13px;margin-left:8px}
+  .kv dd a{text-decoration:underline;text-underline-offset:3px}
+  .kv dd a:hover{color:var(--accent)}
+  .note{color:var(--faint);font-size:14px}
+  .pending{color:var(--faint);font-size:15px;display:flex;align-items:center;gap:10px}
+  .pending .spin{width:16px;height:16px;border-radius:50%;border:2.5px solid var(--line);
+    border-top-color:var(--accent);animation:spin .7s linear infinite;flex:none}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .nf{padding:80px 0 30px;text-align:center}
+  .nf h1{font-size:clamp(34px,6vw,58px)}
+  .nf p{color:var(--muted);font-size:18px;max-width:44ch;margin:20px auto 30px}
+
+  footer{border-top:1px solid var(--line);margin-top:64px;padding:36px 0 64px;
+    display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;color:var(--faint);font-size:14.5px}
+  footer .logo{font-size:16px;color:var(--ink)}
+  footer nav{display:flex;gap:22px}
+  footer a:hover{color:var(--ink)}
+
+  @media(max-width:680px){
+    .kv{grid-template-columns:1fr;gap:2px 0}
+    .kv dt{margin-top:12px}
+  }
+</style>
+</head>
+<body>
+<div class="dawn" aria-hidden="true"></div>
+<div class="content">
+<div class="wrap">
+
+  <nav class="top">
+    <a class="logo" href="/"><span class="mark"></span>MikeOS&nbsp;<span class="sub-name">Enterprises</span></a>
+    <a class="back" id="backlink" href="/">← Back to search</a>
+  </nav>
+
+  <main id="main"></main>
+
+  <footer>
+    <a class="logo" href="/"><span class="mark"></span>MikeOS</a>
+    <div id="footnote">Open registry data, gently in flow.</div>
+    <nav>
+      <a href="https://maps.osmike.com">Maps</a>
+      <a href="https://www.osmike.com">MikeOS</a>
+      <a href="https://www.osmike.com/platform.html">Platform</a>
+    </nav>
+  </footer>
+
+</div>
+</div>
+
+<script id="boot" type="application/json">__BOOT__</script>
+<script>
+(function(){
+"use strict";
+var BOOT=JSON.parse(document.getElementById("boot").textContent);
+var $=function(id){return document.getElementById(id)};
+var esc=function(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})};
+
+var LEGAL={AB:"Aktiebolag",HB:"Handelsbolag",KB:"Kommanditbolag",EK:"Ekonomisk förening",
+  BRF:"Bostadsrättsförening",BAB:"Bostadsaktiebolag",BF:"Bostadsförening",E:"Enskild näringsidkare",
+  EF:"Enskild firma",FL:"Filial",FAB:"Försäkringsaktiebolag",SB:"Sparbank",SF:"Stiftelse",
+  TSF:"Registrerat trossamfund",I:"Ideell förening",OFB:"Ömsesidigt försäkringsbolag",
+  SE:"Europabolag",SCE:"Europakooperativ",MB:"Medlemsbank"};
+var SNI={ "01":"Jordbruk","02":"Skogsbruk","03":"Fiske & vattenbruk","05":"Kolutvinning",
+  "06":"Olje- & gasutvinning","07":"Metallmalmsutvinning","08":"Annan mineralutvinning",
+  "09":"Service till utvinning","10":"Livsmedelsframställning","11":"Dryckesframställning",
+  "12":"Tobaksvarutillverkning","13":"Textiltillverkning","14":"Klädtillverkning",
+  "15":"Läder- & skotillverkning","16":"Trävarutillverkning","17":"Papperstillverkning",
+  "18":"Grafisk produktion","19":"Petroleumraffinering","20":"Kemisk industri",
+  "21":"Läkemedelstillverkning","22":"Gummi- & plastvaror","23":"Mineraliska produkter",
+  "24":"Stål- & metallframställning","25":"Metallvarutillverkning","26":"Elektronik & optik",
+  "27":"Elapparatur","28":"Maskintillverkning","29":"Motorfordonstillverkning",
+  "30":"Transportmedelstillverkning","31":"Möbeltillverkning","32":"Övrig tillverkning",
+  "33":"Reparation & installation av maskiner","35":"El, gas & värme","36":"Vattenförsörjning",
+  "37":"Avloppsrening","38":"Avfall & återvinning","39":"Sanering & efterbehandling",
+  "41":"Byggande av hus","42":"Anläggningsarbeten","43":"Specialiserad byggverksamhet",
+  "45":"Handel med motorfordon","46":"Partihandel","47":"Detaljhandel","49":"Landtransport",
+  "50":"Sjötransport","51":"Lufttransport","52":"Magasinering & transportstöd",
+  "53":"Post & kurir","55":"Hotell & logi","56":"Restaurang & bar","58":"Förlagsverksamhet",
+  "59":"Film, video & TV","60":"Radio & TV-sändning","61":"Telekommunikation",
+  "62":"IT-tjänster & programvara","63":"Informationstjänster","64":"Finansiella tjänster",
+  "65":"Försäkring & pension","66":"Finans- & försäkringsstöd","68":"Fastighetsverksamhet",
+  "69":"Juridik & redovisning","70":"Konsulttjänster till företag","71":"Arkitekt & teknisk konsult",
+  "72":"Forskning & utveckling","73":"Reklam & marknadsundersökning","74":"Övrig specialiserad verksamhet",
+  "75":"Veterinärverksamhet","77":"Uthyrning & leasing","78":"Arbetsförmedling & bemanning",
+  "79":"Resebyråer & arrangörer","80":"Säkerhet & bevakning","81":"Fastighetsservice & grönytor",
+  "82":"Kontorstjänster & företagsstöd","84":"Offentlig förvaltning","85":"Utbildning",
+  "86":"Hälso- & sjukvård","87":"Vård & omsorg med boende","88":"Öppna sociala insatser",
+  "90":"Kultur & nöje","91":"Bibliotek, arkiv & museer","92":"Spel & vadhållning",
+  "93":"Sport & fritid","94":"Intresseorganisationer","95":"Reparation av datorer & hushållsvaror",
+  "96":"Andra konsumenttjänster","97":"Hushållsarbetsgivare","99":"Internationella organisationer"};
+var sniLabel=function(code){var d=String(code||"").slice(0,2);return SNI[d]||null};
+var legalLabel=function(f){return LEGAL[(f||"").toUpperCase()]||f||null};
+var fmtOrgnr=function(o){o=String(o||"");return o.length===10?o.slice(0,6)+"-"+o.slice(6):o};
+var fmtSiret=function(s){s=String(s||"");return s.length===14?
+  s.slice(0,3)+" "+s.slice(3,6)+" "+s.slice(6,9)+" "+s.slice(9):s};
+var badgeCls=function(cat){cat=(cat||"").toLowerCase();
+  return ["food","shop","health","service"].indexOf(cat)>=0?cat:""};
+var mapsLink=function(lat,lon){return "https://maps.osmike.com/#16/"+lat+"/"+lon};
+var row=function(label,valueHtml){return valueHtml?
+  "<dt>"+label+"</dt><dd>"+valueHtml+"</dd>":""};
+
+/* back-to-search preserves the last query (stored by the search page) */
+try{
+  var last=JSON.parse(sessionStorage.getItem("entSearch")||"null");
+  if(last&&last.q){$("backlink").href="/?q="+encodeURIComponent(last.q)+
+    "&country="+encodeURIComponent(last.country||"se")}
+  else if(last&&last.country){$("backlink").href="/?country="+encodeURIComponent(last.country)}
+}catch(e){}
+
+function copyBtn(){
+  var b=$("copylink");if(!b)return;
+  b.addEventListener("click",function(){
+    var url=location.origin+location.pathname;
+    (navigator.clipboard?navigator.clipboard.writeText(url):Promise.reject())
+      .then(function(){b.textContent="✓ Link copied";setTimeout(function(){b.textContent="Copy link"},1800)})
+      .catch(function(){prompt("Copy this link:",url)});
+  });
+}
+
+/* ---------- 404 ---------- */
+if(BOOT.notFound){
+  $("main").innerHTML='<div class="nf">'+
+    '<p class="eyebrow"><span class="d"></span>MikeOS Enterprises</p>'+
+    '<h1>No company at <em class="grad-text">this address</em>.</h1>'+
+    '<p>That number isn’t in the '+(BOOT.country==="fr"?"French":"Swedish")+
+    ' registry we hold — it may be misspelled, or the company may not be catalogued yet.</p>'+
+    '<a class="btn" href="/">Search the registries</a></div>';
+  document.title="Company not found — MikeOS Enterprises";
+}
+
+/* ---------- Sweden profile ---------- */
+else if(BOOT.country==="se"){
+  var c=BOOT.company;
+  var geo=(c.lat!=null&&c.lon!=null);
+  var addr=[c.street,[c.postcode,c.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  var snis=(c.sni||[]).map(function(s){var l=sniLabel(s);
+    return "<div>"+(l?esc(l):"Bransch")+'<span class="sub">SNI '+esc(s)+"</span></div>"}).join("");
+  var h='<header class="ph">'+
+    '<p class="eyebrow"><span class="d"></span>🇸🇪 Swedish registry — Bolagsverket / SCB</p>'+
+    "<h1>"+esc(c.name)+"</h1>"+
+    '<div class="idline"><span>Org.nr '+esc(fmtOrgnr(c.orgnr))+"</span>"+
+    (c.legal_form?'<span class="badge">'+esc(legalLabel(c.legal_form)||c.legal_form)+"</span>":"")+
+    (c.trade_name&&c.trade_name!==c.name?"<span>trading as “"+esc(c.trade_name)+"”</span>":"")+
+    (geo?'<span class="badge geo">📍 geocoded</span>':'<span class="badge nogeo">not yet geocoded</span>')+
+    "</div>"+
+    '<div class="actions"><button class="btn ghost" id="copylink">Copy link</button>'+
+    (geo?'<a class="btn" target="_blank" rel="noopener" href="'+mapsLink(c.lat,c.lon)+
+      '">View on MikeOS Maps →</a>':"")+"</div></header>";
+  if(c.business_desc){
+    h+='<div class="desc">“'+esc(c.business_desc)+'”'+
+      '<span class="src">Verksamhetsbeskrivning — the company’s registered purpose</span></div>';
+  }
+  h+='<section class="card"><h2>Registry record</h2><dl class="kv">'+
+    row("Legal form",c.legal_form?esc(legalLabel(c.legal_form)||c.legal_form)+
+      '<span class="sub">'+esc(c.legal_form)+"</span>":null)+
+    row("Registered",c.reg_date?esc(c.reg_date):null)+
+    row("Industry (SNI)",snis||null)+
+    row("Address",addr?esc(addr):null)+
+    row("Storefront",c.kind?esc(c.kind)+(c.category?' <span class="badge '+
+      badgeCls(c.category)+'">'+esc(c.category)+"</span>":""):null)+
+    row("Coordinates",geo?c.lat.toFixed(5)+", "+c.lon.toFixed(5):
+      '<span class="note">not yet geocoded — geocoding of the Swedish registry is in progress</span>')+
+    "</dl></section>";
+  h+='<section class="card" id="scb-card"><h2>Live from SCB <span class="tag">Statistics Sweden</span></h2>'+
+    '<div id="scb-body"><p class="pending"><span class="spin"></span>Fetching the live '+
+    'Allmänna företagsregistret entry…</p></div>'+
+    '<p class="note" style="margin:16px 0 0">Live data from SCB’s Allmänna '+
+    'företagsregistret (Statistics Sweden), fetched on view and cached briefly.</p></section>';
+  $("main").innerHTML=h;
+  $("footnote").innerHTML='Sources: Bolagsverket · SCB (Statistics Sweden, Allmänna företagsregistret)';
+  copyBtn();
+  /* async: live SCB enrichment — the page is complete without it */
+  fetch("/api/se/scb?orgnr="+encodeURIComponent(c.orgnr))
+    .then(function(r){if(!r.ok)throw 0;return r.json()})
+    .then(function(j){
+      var el=$("scb-body");if(!el)return;
+      if(!j.ok||!j.company){el.innerHTML='<p class="note">This company isn’t in SCB’s '+
+        'live register extract (it may be recently deregistered or out of scope).</p>';return}
+      var s=j.company;
+      var post=[s.postadress,[s.postnr,s.postort].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+      var visit=[s.besoksadress,[s.besokspostnr,s.besokspostort].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+      var region=[s.kommun&&("Kommun: "+s.kommun),s.lan&&("Län: "+s.lan)].filter(Boolean).join(" · ");
+      var emp=s.anstallda&&s.anstallda!=="Uppgift saknas"?s.anstallda:null;
+      var rows=
+        row("Employees",emp?esc(emp):null)+
+        row("Workplaces",s.antalArbetsstallen!=null?esc(String(s.antalArbetsstallen))+
+          '<span class="sub">arbetsställen</span>':null)+
+        row("Industry",s.bransch?esc(s.bransch)+(s.branschKod?'<span class="sub">SNI '+
+          esc(s.branschKod)+"</span>":""):null)+
+        row("Legal form",s.juridiskForm?esc(s.juridiskForm):null)+
+        row("Started",s.startdatum?esc(s.startdatum):null)+
+        row("Registered",s.registreringsdatum?esc(s.registreringsdatum):null)+
+        row("Postal address",post?esc(post):null)+
+        row("Visiting address",visit?esc(visit):null)+
+        row("Region",region?esc(region):null)+
+        row("Phone",s.telefon?'<a href="tel:'+esc(s.telefon)+'">'+esc(s.telefon)+"</a>":null)+
+        row("Email",s.epost?'<a href="mailto:'+esc(s.epost)+'">'+esc(s.epost)+"</a>":null)+
+        row("Website",s.webbplats?'<a target="_blank" rel="noopener" href="'+
+          esc(/^https?:/.test(s.webbplats)?s.webbplats:"https://"+s.webbplats)+'">'+
+          esc(s.webbplats)+"</a>":null);
+      $("scb-body").innerHTML=rows?'<dl class="kv">'+rows+"</dl>":
+        '<p class="note">SCB holds no additional public details for this company.</p>';
+    })
+    .catch(function(){var el=$("scb-body");if(el)el.innerHTML=
+      '<p class="note">Live registry temporarily unavailable — the record above is complete '+
+      'from our own copy of the registry.</p>'});
+}
+
+/* ---------- France profile ---------- */
+else{
+  var f=BOOT.company;
+  var h='<header class="ph">'+
+    '<p class="eyebrow"><span class="d"></span>🇫🇷 French registry — SIRENE (INSEE)</p>'+
+    "<h1>"+esc(f.name)+"</h1>"+
+    '<div class="idline"><span>SIRET '+esc(fmtSiret(f.siret))+"</span>"+
+    (f.kind?'<span class="badge '+badgeCls(f.category)+'">'+esc(f.kind)+"</span>":"")+
+    (f.category?'<span class="badge">'+esc(f.category)+"</span>":"")+
+    '<span class="badge geo">📍 geocoded</span></div>'+
+    '<div class="actions"><button class="btn ghost" id="copylink">Copy link</button>'+
+    '<a class="btn" target="_blank" rel="noopener" href="'+mapsLink(f.lat,f.lon)+
+    '">View on MikeOS Maps →</a></div></header>';
+  h+='<section class="card"><h2>Registry record</h2><dl class="kv">'+
+    row("Legal name",f.legal_name&&f.legal_name!==f.name?esc(f.legal_name):null)+
+    row("SIRET",esc(fmtSiret(f.siret))+'<span class="sub">SIREN '+esc(String(f.siret).slice(0,9))+"</span>")+
+    row("Activity (NAF)",f.naf?esc(f.naf)+(f.kind?'<span class="sub">'+esc(f.kind)+"</span>":""):null)+
+    row("Category",f.category?esc(f.category):null)+
+    row("Coordinates",f.lat.toFixed(5)+", "+f.lon.toFixed(5))+
+    row("Record updated",f.updated_at?esc(String(f.updated_at).slice(0,10)):null)+
+    "</dl>"+
+    '<p class="note" style="margin:14px 0 0">SIRENE’s geolocated storefront extract carries '+
+    'no street addresses — the pin above is the geocoded location.</p></section>';
+  h+='<section class="card"><h2>From the business’s website <span class="tag">MikeOS crawl</span></h2>'+
+    '<div id="fr-extra"><p class="pending"><span class="spin"></span>Checking whether MikeOS has '+
+    'found this business’s website…</p></div></section>';
+  $("main").innerHTML=h;
+  $("footnote").innerHTML='Source: INSEE — SIRENE · Licence Ouverte 2.0';
+  copyBtn();
+  fetch("/api/fr/lookup?name="+encodeURIComponent(f.name)+"&lat="+f.lat+"&lon="+f.lon)
+    .then(function(r){if(!r.ok)throw 0;return r.json()})
+    .then(function(j){
+      var el=$("fr-extra");if(!el)return;
+      if(j.status==="ready"){
+        var rows=
+          row("Website",j.website?'<a target="_blank" rel="noopener" href="'+esc(j.website)+'">'+
+            esc(j.website)+"</a>":null)+
+          row("Opening hours",j.opening_hours?esc(j.opening_hours):null)+
+          row("Phone",j.phone?'<a href="tel:'+esc(j.phone)+'">'+esc(j.phone)+"</a>":null)+
+          row("Email",j.email?'<a href="mailto:'+esc(j.email)+'">'+esc(j.email)+"</a>":null)+
+          row("Page title",j.title?esc(j.title):null);
+        el.innerHTML=rows?'<dl class="kv">'+rows+"</dl>":
+          '<p class="note">A website was found but held no extra details.</p>';
+      }else if(j.status==="crawling"||j.status==="queued"){
+        el.innerHTML='<p class="note">MikeOS is looking this business up in the background — '+
+          'website details will appear here on a later visit.</p>';
+      }else{
+        el.innerHTML='<p class="note">No website found for this business yet.</p>';
+      }
+    })
+    .catch(function(){var el=$("fr-extra");if(el)el.innerHTML=
+      '<p class="note">Website lookup temporarily unavailable.</p>'});
+}
+})();
+</script>
+</body>
+</html>

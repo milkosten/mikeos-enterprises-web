@@ -110,10 +110,17 @@
   .results{padding:26px 0 40px;min-height:180px}
   .rmeta{color:var(--faint);font-size:14.5px;margin:0 0 16px}
   .rgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-  .rc{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px 22px;
-    cursor:pointer;transition:transform .2s,box-shadow .2s;text-align:left;font-family:var(--sans);width:100%}
+  .rc{display:block;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px 22px;
+    cursor:pointer;transition:transform .2s,box-shadow .2s;text-align:left;font-family:var(--sans);width:100%;
+    position:relative}
   .rc:hover{transform:translateY(-2px);box-shadow:0 20px 40px -28px rgba(23,19,14,.35)}
-  .rc h3{font-family:var(--disp);font-weight:400;font-size:20px;letter-spacing:-.01em;margin:0 0 4px;color:var(--ink)}
+  .rc .qv{position:absolute;top:14px;right:14px;font-family:var(--sans);font-weight:600;font-size:12.5px;
+    border:1px solid var(--line);border-radius:999px;padding:5px 13px;background:var(--bg);
+    color:var(--faint);cursor:pointer;transition:.2s;opacity:0}
+  .rc:hover .qv,.rc:focus .qv{opacity:1}
+  .rc .qv:hover{border-color:var(--ink);color:var(--ink)}
+  @media(hover:none){.rc .qv{opacity:1}}
+  .rc h3{font-family:var(--disp);font-weight:400;font-size:20px;letter-spacing:-.01em;margin:0 0 4px;color:var(--ink);padding-right:92px}
   .rc .meta{color:var(--muted);font-size:14px;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
   .badge{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.04em;border-radius:999px;
     padding:3px 11px;background:#f4eee5;color:var(--muted)}
@@ -252,7 +259,8 @@
           Geocoding of establishments is in progress — more pins appear on the map every day.</p>
         <p class="lic">Source: <a href="https://bolagsverket.se" rel="noopener">Bolagsverket</a> ·
           <a href="https://www.scb.se" rel="noopener">SCB</a> — Swedish open government data,
-          free to use and share.</p>
+          free to use and share.<br>Company profiles are enriched live from SCB’s
+          Allmänna företagsregistret (Statistics Sweden).</p>
       </div>
       <div class="dc rv">
         <h3>🇫🇷 France — SIRENE (INSEE)</h3>
@@ -444,17 +452,20 @@ function seCards(hits,q){
   var h='<p class="rmeta">'+hits.length+' match'+(hits.length===1?"":"es")+' in the Swedish registry</p><div class="rgrid">';
   hits.forEach(function(x){
     var sni=sniLabel(x.sni);
-    h+='<button class="rc" data-orgnr="'+esc(x.orgnr)+'"><h3>'+esc(x.name)+'</h3><div class="meta">'+
+    h+='<a class="rc" href="/se/'+esc(x.orgnr)+'" data-orgnr="'+esc(x.orgnr)+'">'+
+      '<button class="qv" type="button">Quick view</button>'+
+      '<h3>'+esc(x.name)+'</h3><div class="meta">'+
       '<span>'+esc(fmtOrgnr(x.orgnr))+'</span>'+
       (x.legal_form?'<span class="badge">'+esc(legalLabel(x.legal_form))+'</span>':"")+
       (x.city?'<span>'+esc(x.city)+'</span>':"")+
       (sni?'<span class="badge service">'+esc(sni)+'</span>':"")+
       (x.lat!=null?'<span class="badge geo">📍 on map</span>':"")+
-      '</div></button>';
+      '</div></a>';
   });
   results.innerHTML=h+"</div>";
-  [].slice.call(results.querySelectorAll(".rc")).forEach(function(el){
-    el.addEventListener("click",function(){openSE(el.getAttribute("data-orgnr"))});
+  [].slice.call(results.querySelectorAll(".rc .qv")).forEach(function(el){
+    el.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();
+      openSE(el.parentNode.getAttribute("data-orgnr"))});
   });
 }
 function frCards(pois,label,isSearch){
@@ -464,21 +475,26 @@ function frCards(pois,label,isSearch){
     (isSearch?' matching “'+esc(label)+'”':' in central '+esc(label))+
     ' — SIRENE, geocoded</p><div class="rgrid">';
   pois.forEach(function(x,i){
-    h+='<button class="rc" data-i="'+i+'"><h3>'+esc(x.name)+'</h3><div class="meta">'+
+    h+='<a class="rc" href="/fr/'+esc(x.siret)+'" data-i="'+i+'">'+
+      '<button class="qv" type="button">Quick view</button>'+
+      '<h3>'+esc(x.name)+'</h3><div class="meta">'+
       (x.kind?'<span class="badge '+badgeCls(x.category)+'">'+esc(x.kind)+'</span>':"")+
       (x.category?'<span class="badge">'+esc(x.category)+'</span>':"")+
-      '<span>'+esc(fmtSiret(x.siret))+'</span></div></button>';
+      '<span>'+esc(fmtSiret(x.siret))+'</span></div></a>';
   });
   results.innerHTML=h+"</div>";
   var data=pois;
-  [].slice.call(results.querySelectorAll(".rc")).forEach(function(el){
-    el.addEventListener("click",function(){openFR(data[Number(el.getAttribute("data-i"))])});
+  [].slice.call(results.querySelectorAll(".rc .qv")).forEach(function(el){
+    el.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();
+      openFR(data[Number(el.parentNode.getAttribute("data-i"))])});
   });
 }
 
 /* ---------- search flows ---------- */
+function remember(q){try{sessionStorage.setItem("entSearch",
+  JSON.stringify({q:q||"",country:country}))}catch(e){}}
 function doSearch(q){
-  var seq=++reqSeq;busy(true);
+  var seq=++reqSeq;busy(true);remember(q);
   if(country==="se"){
     apiGet("/api/se/search?q="+encodeURIComponent(q)+"&limit=24",seq,
       function(j){busy(false);seCards(j.hits||[],q)},
@@ -492,7 +508,7 @@ function doSearch(q){
   }
 }
 function browseCity(name,bbox){
-  var seq=++reqSeq;busy(true);
+  var seq=++reqSeq;busy(true);remember("");
   results.innerHTML='<p class="empty">Fetching '+esc(name)+'’s storefronts…</p>';
   apiGet("/api/fr/near?bbox="+bbox+"&limit=60",seq,
     function(j){busy(false);frCards(j.pois||[],name,false)},
@@ -506,6 +522,17 @@ input.addEventListener("input",function(){
   if(country==="fr"&&!frSearchOK)return;
   debounceT=setTimeout(function(){doSearch(q)},300);
 });
+
+/* restore a shared/back-navigated search: /?q=…&country=… */
+(function(){
+  try{
+    var p=new URLSearchParams(location.search);
+    var c=(p.get("country")||"").toLowerCase(), q=(p.get("q")||"").trim();
+    if(c==="fr"||c==="se")setCountry(c);
+    if(q.length>=2){input.value=q;doSearch(q);
+      var sb=document.getElementById("search");if(sb)sb.scrollIntoView({block:"start"});}
+  }catch(e){}
+})();
 
 /* ---------- detail panels ---------- */
 var overlay=$("overlay"),panel=$("panel");
@@ -540,6 +567,7 @@ function openSE(orgnr){
         "</dl>"+
         (c.business_desc?'<div class="desc">“'+esc(c.business_desc)+'”</div>':"")+
         '<div class="maprow">'+
+        '<a class="btn" href="/se/'+esc(c.orgnr)+'">Open full profile →</a>'+
         (geo?'<a class="btn" target="_blank" rel="noopener" href="'+mapsLink(c.lat,c.lon)+
           '">View on MikeOS Maps →</a>':"")+
         '<span class="note">Open registry data · free to use</span></div>';
@@ -559,7 +587,8 @@ function openFR(p){
     "<dt>On the map</dt><dd><span class=\"badge geo\">📍 geocoded</span></dd>"+
     "</dl>"+
     '<div id="fr-extra"></div>'+
-    '<div class="maprow"><a class="btn" target="_blank" rel="noopener" href="'+
+    '<div class="maprow"><a class="btn" href="/fr/'+esc(p.siret)+'">Open full profile →</a>'+
+    '<a class="btn" target="_blank" rel="noopener" href="'+
     mapsLink(p.lat,p.lon)+'">View on MikeOS Maps →</a>'+
     '<span class="note">Licence Ouverte 2.0 · INSEE</span></div>';
   openPanel(h);
